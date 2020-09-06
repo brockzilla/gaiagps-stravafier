@@ -7,9 +7,13 @@ if __name__ == "__main__":
 
     print("Converting GaiaGPS GPX file to Stava-friendly GPX...")
 
-    inputXML = ET.parse('triple-climb-garland-ranch.gpx').getroot()
+    inputXML = ET.parse('data/triple-climb-garland-ranch.gpx').getroot()
 
-    # Set up our outputXML
+    # (year, month, day, hour, minute, second, microsecond)
+    startDate = datetime(2020, 9, 5, 6, 30, 0, 0)
+    endDate = datetime(2020, 9, 5, 11, 10, 0, 0)
+
+    # Start building our new GPX file
     gpx = ET.Element('gpx')
     gpx.set('creator', 'GaiaGPS')
     gpx.set('version', '1.1')
@@ -24,15 +28,16 @@ if __name__ == "__main__":
     activityType = ET.SubElement(trk, 'type')
     trkseg = ET.SubElement(trk, 'trkseg')
 
-    #datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
-    startDate = datetime(2020, 9, 5, 6, 30, 0, 0)
-    endDate = datetime(2020, 9, 5, 11, 10, 0, 0)
-
+    # Calculate an average number of seconds per segment
+    # Then use that to generate approximate times for each segment (required by Strava)
     durationSeconds = endDate.timestamp() - startDate.timestamp()
     segmentCount = len(inputXML[0].getchildren())
     secondsPerSegment = durationSeconds/segmentCount
     runningTime = startDate.timestamp()
 
+    print("Activity [" + name.text + "]: " + str(durationSeconds) + " seconds ellapsed / " + str(segmentCount) + " segments = " + str(secondsPerSegment) + "s/segment (average)")
+
+    # For each segment in the old file, create one in the new file
     for rtept in inputXML.iter(NAMESPACE + 'rtept'):
 
         trkpt = ET.SubElement(trkseg, 'trkpt')
@@ -45,13 +50,8 @@ if __name__ == "__main__":
         time.text = str(datetime.fromtimestamp(runningTime).astimezone().isoformat())
         runningTime += secondsPerSegment
 
-
-    #2020-09-05T13:49:50Z
-    #2020-09-04 23:31:26.626140
-
-    #print(ET.tostring(gpx))
-
-    with open("gaiagps-converted.gpx", "w") as output:
+    # Write our new-and-improved, Strava-friendly GPX file
+    with open("data/gaiagps-converted.gpx", "w") as output:
         output.write(ET.tostring(gpx).decode("utf-8"))
 
-    print("Finished!")
+    print("Conversion complete!")
