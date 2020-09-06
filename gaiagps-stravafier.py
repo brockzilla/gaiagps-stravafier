@@ -1,17 +1,25 @@
 from datetime import datetime, timezone
 import xml.etree.ElementTree as ET
+import argparse
 
 NAMESPACE = "{http://www.topografix.com/GPX/1/1}"
+TIMESTAMP_FORMAT = "%Y/%m/%d %H:%M"
 
 if __name__ == "__main__":
+    argParser = argparse.ArgumentParser(description="GaiaGPS Stravafier")
+    required_parser = argParser.add_argument_group("required arguments")
+    required_parser.add_argument('-file', help="The GPX file you're converting", required=True)
+    required_parser.add_argument('-start', help="Activity start timestamp (ie. '2020/09/05 9:30')", required=True)
+    required_parser.add_argument('-end', help="Activity end timestamp (ie. '2020/09/05 13:30')", required=True)
+    args = argParser.parse_args()
 
+    print("----------------------------------------------------")
     print("Converting GaiaGPS GPX file to Stava-friendly GPX...")
+    print("----------------------------------------------------")
 
-    inputXML = ET.parse('data/triple-climb-garland-ranch.gpx').getroot()
-
-    # (year, month, day, hour, minute, second, microsecond)
-    startDate = datetime(2020, 9, 5, 6, 30, 0, 0)
-    endDate = datetime(2020, 9, 5, 11, 10, 0, 0)
+    inputXML = ET.parse(args.file).getroot()
+    startDate = datetime.strptime(args.start, TIMESTAMP_FORMAT)
+    endDate = datetime.strptime(args.end, TIMESTAMP_FORMAT)
 
     # Start building our new GPX file
     gpx = ET.Element('gpx')
@@ -35,7 +43,13 @@ if __name__ == "__main__":
     secondsPerSegment = durationSeconds/segmentCount
     runningTime = startDate.timestamp()
 
-    print("Activity [" + name.text + "]: " + str(durationSeconds) + " seconds ellapsed / " + str(segmentCount) + " segments = " + str(secondsPerSegment) + "s/segment (average)")
+    print(" - Incoming file: " + args.file)
+    print(" - Activity: " + name.text)
+    print(" - Start: " + startDate.strftime(TIMESTAMP_FORMAT))
+    print(" - End: " + endDate.strftime(TIMESTAMP_FORMAT))
+    print(" - Ellapsed: " + str(durationSeconds) + " seconds")
+    print(" - Segments: " + str(segmentCount))
+    print(" - Average: " + str(secondsPerSegment) + " sec/segment")
 
     # For each segment in the old file, create one in the new file
     for rtept in inputXML.iter(NAMESPACE + 'rtept'):
@@ -54,4 +68,4 @@ if __name__ == "__main__":
     with open("data/gaiagps-converted.gpx", "w") as output:
         output.write(ET.tostring(gpx).decode("utf-8"))
 
-    print("Conversion complete!")
+    print("Conversion complete! [See: data/gaiagps-converted.gpx]")
